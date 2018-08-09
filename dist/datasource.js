@@ -41,6 +41,8 @@ function (angular, _, dateMath, moment) {
 
     var GRANULARITIES = [
       ['minute', moment.duration(1, 'minute')],
+      ['five_minute', moment.duration(5, 'minute')],
+      ['ten_minute', moment.duration(10, 'minute')],
       ['fifteen_minute', moment.duration(15, 'minute')],
       ['thirty_minute', moment.duration(30, 'minute')],
       ['hour', moment.duration(1, 'hour')],
@@ -285,8 +287,8 @@ function (angular, _, dateMath, moment) {
         "dimensions": groupBy,
         "aggregations": aggregators,
         "postAggregations": postAggregators,
-        "intervals": intervals,
-        "limitSpec": limitSpec
+        "intervals": intervals
+        // "limitSpec": limitSpec
       };
 
       if (filters && filters.length > 0) {

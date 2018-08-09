@@ -62,19 +62,19 @@
       <label class="gf-form-label query-keyword width-4">
         Metric
       </label>
-      <input type="text" class="gf-form-input" ng-model="ctrl.target.druidMetric" spellcheck='false' placeholder="metric" ng-blur="ctrl.targetBlur()" />
+      <input type="text" class="gf-form-input" ng-model="ctrl.target.druidMetric" spellcheck='false' placeholder="metric" bs-typeahead="ctrl.getMetrics" ng-blur="ctrl.targetBlur()" />
       <label class="gf-form-label" bs-tooltip="ctrl.target.errors.druidMetric" style="color: rgb(229, 189, 28)" ng-show="ctrl.target.errors.druidMetric">
         <i class="fa fa-warning"></i>
       </label>
     </div>
     <div ng-switch-when="topN" class="gf-form">
-      <label class="gf-form-label query-keyword width-4">
-        Limit
+      <label class="gf-form-label query-keyword">
+        threshold
       </label>
-      <input type="number" required class="gf-form-input input-small" ng-model="ctrl.target.limit" spellcheck='false' ng-blur="ctrl.targetBlur()" />
-      <label class="gf-form-label" bs-tooltip="ctrl.target.errors.limit" style="color: rgb(229, 189, 28)" ng-show="ctrl.target.errors.limit">
+      <input type="number" required class="gf-form-input input-small" ng-model="ctrl.target.selectThreshold" placeholder="5" spellcheck='false' ng-blur="ctrl.targetBlur()" />
+      <a bs-tooltip="ctrl.target.errors.selectThreshold" style="color: rgb(229, 189, 28)" ng-show="ctrl.target.errors.selectThreshold">
         <i class="fa fa-warning"></i>
-      </label>
+      </a>
     </div>
     <div ng-switch-when="groupBy" class="gf-form max-width-20">
       <label class="gf-form-label query-keyword width-9">
@@ -85,6 +85,7 @@
         <i class="fa fa-warning"></i>
       </label>
     </div>
+<!--
     <div ng-switch-when="groupBy" class="gf-form">
 
       <label class="gf-form-label query-keyword width-4">
@@ -95,6 +96,7 @@
         <i class="fa fa-warning"></i>
       </label>
     </div>
+-->
     <div ng-switch-when="groupBy" class="gf-form">
       <label class="gf-form-label query-keyword width-5">
         Order

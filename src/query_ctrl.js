@@ -1,111 +1,118 @@
+"use strict";
 ///<reference path="../headers/common.d.ts" />
-var __extends = (this && this.__extends) || function (d, b) {
-    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
-    function __() { this.constructor = d; }
-    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-};
-var lodash_1 = require('lodash');
-var sdk_1 = require('./sdk/sdk');
-var DruidQueryCtrl = (function (_super) {
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var lodash_1 = require("lodash");
+var sdk_1 = require("./sdk/sdk");
+var DruidQueryCtrl = /** @class */ (function (_super) {
     __extends(DruidQueryCtrl, _super);
     /** @ngInject **/
     function DruidQueryCtrl($scope, $injector, $q) {
-        var _this = this;
-        _super.call(this, $scope, $injector);
-        this.queryTypeValidators = {
-            "timeseries": lodash_1.default.noop.bind(this),
-            "groupBy": this.validateGroupByQuery.bind(this),
-            "topN": this.validateTopNQuery.bind(this),
-            "select": this.validateSelectQuery.bind(this)
+        var _this = _super.call(this, $scope, $injector) || this;
+        _this.queryTypeValidators = {
+            "timeseries": lodash_1.default.noop.bind(_this),
+            "groupBy": _this.validateGroupByQuery.bind(_this),
+            "topN": _this.validateTopNQuery.bind(_this),
+            "select": _this.validateSelectQuery.bind(_this)
         };
-        this.filterValidators = {
-            "selector": this.validateSelectorFilter.bind(this),
-            "regex": this.validateRegexFilter.bind(this),
-            "javascript": this.validateJavascriptFilter.bind(this)
+        _this.filterValidators = {
+            "selector": _this.validateSelectorFilter.bind(_this),
+            "regex": _this.validateRegexFilter.bind(_this),
+            "javascript": _this.validateJavascriptFilter.bind(_this)
         };
-        this.aggregatorValidators = {
-            "count": this.validateCountAggregator,
-            "longSum": lodash_1.default.partial(this.validateSimpleAggregator.bind(this), 'longSum'),
-            "doubleSum": lodash_1.default.partial(this.validateSimpleAggregator.bind(this), 'doubleSum'),
-            "approxHistogramFold": this.validateApproxHistogramFoldAggregator.bind(this),
-            "hyperUnique": lodash_1.default.partial(this.validateSimpleAggregator.bind(this), 'hyperUnique'),
-            "thetaSketch": this.validateThetaSketchAggregator.bind(this)
+        _this.aggregatorValidators = {
+            "count": _this.validateCountAggregator,
+            "longSum": lodash_1.default.partial(_this.validateSimpleAggregator.bind(_this), 'longSum'),
+            "doubleSum": lodash_1.default.partial(_this.validateSimpleAggregator.bind(_this), 'doubleSum'),
+            "approxHistogramFold": _this.validateApproxHistogramFoldAggregator.bind(_this),
+            "hyperUnique": lodash_1.default.partial(_this.validateSimpleAggregator.bind(_this), 'hyperUnique'),
+            "thetaSketch": _this.validateThetaSketchAggregator.bind(_this)
         };
-        this.postAggregatorValidators = {
-            "arithmetic": this.validateArithmeticPostAggregator.bind(this),
-            "max": this.validateMaxPostAggregator.bind(this),
-            "min": this.validateMinPostAggregator.bind(this),
-            "quantile": this.validateQuantilePostAggregator.bind(this)
+        _this.postAggregatorValidators = {
+            "arithmetic": _this.validateArithmeticPostAggregator.bind(_this),
+            "max": _this.validateMaxPostAggregator.bind(_this),
+            "min": _this.validateMinPostAggregator.bind(_this),
+            "quantile": _this.validateQuantilePostAggregator.bind(_this)
         };
-        this.arithmeticPostAggregatorFns = { '+': null, '-': null, '*': null, '/': null };
-        this.defaultQueryType = "timeseries";
-        this.defaultFilterType = "selector";
-        this.defaultAggregatorType = "count";
-        this.defaultPostAggregator = { type: 'arithmetic', 'fn': '+' };
-        this.customGranularities = ['minute', 'five_minute', 'ten_minute', 'fifteen_minute', 'thirty_minute', 'hour', 'day', 'all'];
-        this.defaultCustomGranularity = 'minute';
-        this.defaultSelectDimension = "";
-        this.defaultSelectMetric = "";
-        this.defaultLimit = 5;
-        if (!this.target.queryType) {
-            this.target.queryType = this.defaultQueryType;
+        _this.arithmeticPostAggregatorFns = { '+': null, '-': null, '*': null, '/': null };
+        _this.defaultQueryType = "timeseries";
+        _this.defaultFilterType = "selector";
+        _this.defaultAggregatorType = "count";
+        _this.defaultPostAggregator = { type: 'arithmetic', 'fn': '+' };
+        _this.customGranularities = ['minute', 'five_minute', 'ten_minute', 'fifteen_minute', 'thirty_minute', 'hour', 'day', 'all'];
+        _this.defaultCustomGranularity = 'minute';
+        _this.defaultSelectDimension = "";
+        _this.defaultSelectMetric = "";
+        _this.defaultLimit = 5;
+        if (!_this.target.queryType) {
+            _this.target.queryType = _this.defaultQueryType;
         }
-        this.queryTypes = lodash_1.default.keys(this.queryTypeValidators);
-        this.filterTypes = lodash_1.default.keys(this.filterValidators);
-        this.aggregatorTypes = lodash_1.default.keys(this.aggregatorValidators);
-        this.postAggregatorTypes = lodash_1.default.keys(this.postAggregatorValidators);
-        this.arithmeticPostAggregator = lodash_1.default.keys(this.arithmeticPostAggregatorFns);
-        this.customGranularity = this.customGranularities;
-        this.errors = this.validateTarget();
-        if (!this.target.currentFilter) {
-            this.clearCurrentFilter();
+        _this.queryTypes = lodash_1.default.keys(_this.queryTypeValidators);
+        _this.filterTypes = lodash_1.default.keys(_this.filterValidators);
+        _this.aggregatorTypes = lodash_1.default.keys(_this.aggregatorValidators);
+        _this.postAggregatorTypes = lodash_1.default.keys(_this.postAggregatorValidators);
+        _this.arithmeticPostAggregator = lodash_1.default.keys(_this.arithmeticPostAggregatorFns);
+        _this.customGranularity = _this.customGranularities;
+        _this.errors = _this.validateTarget();
+        if (!_this.target.currentFilter) {
+            _this.clearCurrentFilter();
         }
-        if (!this.target.currentSelect) {
-            this.target.currentSelect = {};
-            this.clearCurrentSelectDimension();
-            this.clearCurrentSelectMetric();
+        if (!_this.target.currentSelect) {
+            _this.target.currentSelect = {};
+            _this.clearCurrentSelectDimension();
+            _this.clearCurrentSelectMetric();
         }
-        if (!this.target.currentAggregator) {
-            this.clearCurrentAggregator();
+        if (!_this.target.currentAggregator) {
+            _this.clearCurrentAggregator();
         }
-        if (!this.target.currentPostAggregator) {
-            this.clearCurrentPostAggregator();
+        if (!_this.target.currentPostAggregator) {
+            _this.clearCurrentPostAggregator();
         }
-        if (!this.target.customGranularity) {
-            this.target.customGranularity = this.defaultCustomGranularity;
+        if (!_this.target.customGranularity) {
+            _this.target.customGranularity = _this.defaultCustomGranularity;
         }
-        if (!this.target.limit) {
-            this.target.limit = this.defaultLimit;
+        if (!_this.target.limit) {
+            _this.target.limit = _this.defaultLimit;
         }
         // needs to be defined here as it is called from typeahead
-        this.listDataSources = function (query, callback) {
+        _this.listDataSources = function (query, callback) {
             _this.datasource.getDataSources()
                 .then(callback);
         };
-        this.getDimensions = function (query, callback) {
+        _this.getDimensions = function (query, callback) {
             return _this.datasource.getDimensionsAndMetrics(_this.target.druidDS)
                 .then(function (dimsAndMetrics) {
                 callback(dimsAndMetrics.dimensions);
             });
         };
-        this.getMetrics = function (query, callback) {
+        _this.getMetrics = function (query, callback) {
             return _this.datasource.getDimensionsAndMetrics(_this.target.druidDS)
                 .then(function (dimsAndMetrics) {
                 callback(dimsAndMetrics.metrics);
             });
         };
-        this.getDimensionsAndMetrics = function (query, callback) {
+        _this.getDimensionsAndMetrics = function (query, callback) {
             console.log("getDimensionsAndMetrics.query: " + query);
             _this.datasource.getDimensionsAndMetrics(_this.target.druidDS)
                 .then(callback);
         };
-        this.getFilterValues = function (query, callback) {
+        _this.getFilterValues = function (query, callback) {
             var dimension = _this.target.currentFilter.dimension;
             _this.datasource.getFilterValues(_this.target, _this.panelCtrl.range, query)
                 .then(function (results) {
                 callback(results.data[0].result.map(function (datum) { return datum[dimension]; }));
             });
         };
+        return _this;
         //this.$on('typeahead-updated', function() {
         //  $timeout(this.targetBlur);
         //});
@@ -536,6 +543,5 @@ var DruidQueryCtrl = (function (_super) {
     };
     DruidQueryCtrl.templateUrl = 'partials/query.editor.html';
     return DruidQueryCtrl;
-})(sdk_1.QueryCtrl);
+}(sdk_1.QueryCtrl));
 exports.DruidQueryCtrl = DruidQueryCtrl;
-//# sourceMappingURL=query_ctrl.js.map

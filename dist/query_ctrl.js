@@ -52,7 +52,7 @@ System.register(['lodash', './sdk/sdk'], function(exports_1) {
                     this.defaultFilterType = "selector";
                     this.defaultAggregatorType = "count";
                     this.defaultPostAggregator = { type: 'arithmetic', 'fn': '+' };
-                    this.customGranularities = ['minute', 'fifteen_minute', 'thirty_minute', 'hour', 'day', 'all'];
+                    this.customGranularities = ['minute', 'five_minute', 'ten_minute', 'fifteen_minute', 'thirty_minute', 'hour', 'day', 'all'];
                     this.defaultCustomGranularity = 'minute';
                     this.defaultSelectDimension = "";
                     this.defaultSelectMetric = "";
