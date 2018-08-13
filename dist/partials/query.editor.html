@@ -42,6 +42,17 @@
       <input type="text" class="gf-form-input" ng-model="ctrl.target.maxDataPoints" spellcheck='false' placeholder="default" ng-blur="ctrl.targetBlur()">
       </input>
     </div>
+    <div class="gf-form max-width-20">
+        <label class="gf-form-label query-keyword">
+          Time Shift
+          <label class="gf-form-label" bs-tooltip="ctrl.errors.timeShift" style="color: rgb(229, 189, 28)" ng-show="ctrl.errors.timeShift">
+            <i class="fa fa-warning"></i>
+          </label>
+        </label>
+        <input type="text" class="gf-form-input" ng-model="ctrl.target.timeShift" spellcheck='false' placeholder="1d" ng-blur="ctrl.targetBlur()">
+        </input>
+      </div>
+
     <div class="gf-form gf-form--grow">
       <div class="gf-form-label gf-form-label--grow"></div>
     </div>

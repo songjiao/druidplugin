@@ -1,7 +1,6 @@
-"use strict";
 ///<reference path="../../headers/common.d.ts" />
-Object.defineProperty(exports, "__esModule", { value: true });
-var QueryCtrl = /** @class */ (function () {
+"use strict";
+var QueryCtrl = (function () {
     function QueryCtrl($scope, $injector) {
         this.$scope = $scope;
         this.$injector = $injector;

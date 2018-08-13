@@ -23,7 +23,7 @@ function (angular, _, dateMath, moment) {
   'use strict';
 
   /** @ngInject */
-  function DruidDatasource(instanceSettings, $q, backendSrv, templateSrv) {
+  function DruidDatasource(instanceSettings, $q, backendSrv, templateSrv, timeSrv) {
     this.type = 'druid-datasource';
     this.url = instanceSettings.url;
     this.name = instanceSettings.name;
@@ -112,6 +112,21 @@ function (angular, _, dateMath, moment) {
       });
     };
 
+    //Called when trigger templating query
+    this.metricFindQuery = function(query) {
+      query = angular.fromJson(query);
+      if (query.queryType === "topN"){
+        query.intervals = getQueryIntervals(moment().day(-1), moment());
+        this._druidQuery(query).then(function(response) {
+          var _result = [];
+          response[0].result.foreach(function (rs) {
+            _result.push(rs[query.dimension]);
+          });
+          return _result;
+        });
+      }
+    }
+
     // Called once per panel (graph)
     this.query = function(options) {
       var dataSource = this;
@@ -132,15 +147,31 @@ function (angular, _, dateMath, moment) {
         var maxDataPointsByConfig = target.maxDataPoints? target.maxDataPoints : Number.MAX_VALUE;
         var maxDataPoints = Math.min(maxDataPointsByResolution, maxDataPointsByConfig);
         var granularity = target.shouldOverrideGranularity? target.customGranularity : computeGranularity(from, to, maxDataPoints);
+        //timeShift
+        var timeShift = target.timeShift;
+        var timeShiftMs = 0;
+        if (timeShift) {
+          if (timeShift.match(/(\d+)h/)) {
+            timeShiftMs = timeShift.match(/(\d+)h/)[1] * 60 * 60 * 1000;
+          } else if (timeShift.match(/(\d+)d/)) {
+            timeShiftMs = timeShift.match(/(\d+)d/)[1] * 60 * 60 * 24 * 1000;
+          } else if (timeShift.match(/(\d+)w/)) {
+            timeShiftMs = timeShift.match(/(\d+)w/)[1] * 60 * 60 * 24 * 7 * 1000;
+          } else if (timeShift.match(/(\d+)m/)) {
+            timeShiftMs = timeShift.match(/(\d+)m/)[1] * 60 * 60 * 24 * 30 * 1000;
+          }
+        }
         //Round up to start of an interval
         //Width of bar chars in Grafana is determined by size of the smallest interval
         var roundedFrom = granularity === "all" ? from : roundUpStartTime(from, granularity);
+        var timeShiftedFrom = moment.utc(roundedFrom.valueOf() - timeShiftMs);
+        var timeShiftedTo = moment.utc(to - timeShiftMs);
         if(dataSource.periodGranularity!=""){
             if(granularity==='day'){
                 granularity = {"type": "period", "period": "P1D", "timeZone": dataSource.periodGranularity}
             }
         }
-        return dataSource._doQuery(roundedFrom, to, granularity, target);
+        return dataSource._doQuery(timeShiftedFrom, timeShiftedTo, granularity, target, timeShiftMs);
       });
 
       return $q.all(promises).then(function(results) {
@@ -148,7 +179,7 @@ function (angular, _, dateMath, moment) {
       });
     };
 
-    this._doQuery = function (from, to, granularity, target) {
+    this._doQuery = function (from, to, granularity, target, timeShiftMs) {
       var datasource = target.druidDS;
       var filters = target.filters;
       var aggregators = target.aggregators;
@@ -170,28 +201,28 @@ function (angular, _, dateMath, moment) {
         var threshold = target.limit;
         var metric = target.druidMetric;
         var dimension = templateSrv.replace(target.dimension);
-        promise = this._topNQuery(datasource, intervals, granularity, filters, aggregators, postAggregators, threshold, metric, dimension)
+        promise = this._topNQuery(datasource, intervals, granularity, filters, aggregators, postAggregators, threshold, metric, dimension, timeShiftMs)
           .then(function(response) {
-            return convertTopNData(response.data, dimension, metric);
+            return convertTopNData(response.data, dimension, metric, timeShiftMs);
           });
       }
       else if (target.queryType === 'groupBy') {
         limitSpec = getLimitSpec(target.limit, target.orderBy);
-        promise = this._groupByQuery(datasource, intervals, granularity, filters, aggregators, postAggregators, groupBy, limitSpec)
+        promise = this._groupByQuery(datasource, intervals, granularity, filters, aggregators, postAggregators, groupBy, limitSpec, timeShiftMs)
           .then(function(response) {
-            return convertGroupByData(response.data, groupBy, metricNames);
+            return convertGroupByData(response.data, groupBy, metricNames, timeShiftMs);
           });
       }
       else if (target.queryType === 'select') {
-        promise = this._selectQuery(datasource, intervals, granularity, selectDimensions, selectMetrics, filters, selectThreshold);
+        promise = this._selectQuery(datasource, intervals, granularity, selectDimensions, selectMetrics, filters, selectThreshold, timeShiftMs);
         return promise.then(function(response) {
-          return convertSelectData(response.data);
+          return convertSelectData(response.data, timeShiftMs);
         });
       }
       else {
-        promise = this._timeSeriesQuery(datasource, intervals, granularity, filters, aggregators, postAggregators)
+        promise = this._timeSeriesQuery(datasource, intervals, granularity, filters, aggregators, postAggregators, timeShiftMs)
           .then(function(response) {
-            return convertTimeSeriesData(response.data, metricNames);
+            return convertTimeSeriesData(response.data, metricNames, timeShiftMs);
           });
       }
       /*
@@ -358,14 +389,14 @@ function (angular, _, dateMath, moment) {
       return moment(ts).format('X')*1000;
     }
 
-    function convertTimeSeriesData(md, metrics) {
+    function convertTimeSeriesData(md, metrics, timeShiftMs) {
       return metrics.map(function (metric) {
         return {
           target: metric,
           datapoints: md.map(function (item) {
             return [
               item.result[metric],
-              formatTimestamp(item.timestamp)
+              formatTimestamp(item.timestamp) + timeShiftMs
             ];
           })
         };
@@ -379,7 +410,7 @@ function (angular, _, dateMath, moment) {
       .join("-");
     }
 
-    function convertTopNData(md, dimension, metric) {
+    function convertTopNData(md, dimension, metric, timeShiftMs) {
       /*
         Druid topN results look like this:
         [
@@ -447,7 +478,7 @@ function (angular, _, dateMath, moment) {
               ...
             ]
         */
-        var timestamp = formatTimestamp(item.timestamp);
+        var timestamp = formatTimestamp(item.timestamp) + timeShiftMs;
         var keys = _.map(item.result, dimension);
         var vals = _.map(item.result, metric).map(function (val) { return [val, timestamp];});
         return _.zipObject(keys, vals);
@@ -482,7 +513,7 @@ function (angular, _, dateMath, moment) {
       });
     }
 
-    function convertGroupByData(md, groupBy, metrics) {
+    function convertGroupByData(md, groupBy, metrics, timeShiftMs) {
       var mergedData = md.map(function (item) {
         /*
           The first map() transforms the list Druid events into a list of objects
@@ -496,7 +527,7 @@ function (angular, _, dateMath, moment) {
         var vals = metrics.map(function (metric) {
           return [
             item.event[metric],
-            formatTimestamp(item.timestamp)
+            formatTimestamp(item.timestamp) + timeShiftMs
           ];
         });
         return _.zipObject(keys, vals);
@@ -532,14 +563,14 @@ function (angular, _, dateMath, moment) {
       });
     }
 
-    function convertSelectData(data){
+    function convertSelectData(data, timeShiftMs){
       var resultList = _.map(data, "result");
       var eventsList = _.map(resultList, "events");
       var eventList = _.flatten(eventsList);
       var result = {};
       for(var i = 0; i < eventList.length; i++){
         var event = eventList[i].event;
-        var timestamp = event.timestamp;
+        var timestamp = event.timestamp + timeShiftMs;
         if(_.isEmpty(timestamp)) {
           continue;
         }
